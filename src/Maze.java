@@ -9,6 +9,10 @@ public class Maze {
     // (0, 0) is bottom left, (24, 24) is top right
     final boolean grid[][];
 
+    public static void main(String[] arg) {
+        new Maze();
+    }
+
     private Maze(int xSize, int ySize) {
         grid = new boolean[xSize][ySize];
         this.xSize = xSize;

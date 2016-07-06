@@ -5,6 +5,10 @@ public class Conga {
 
     private final int board[][] = new int[4][4];
 
+    public static void main(String[] arg) {
+        new Conga();
+    }
+
     public Conga() {
         setPieces(1, 4, 10 * BLACK);
         setPieces(4, 1, 10 * WHITE);
