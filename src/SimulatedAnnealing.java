@@ -1,32 +1,33 @@
-import sun.plugin2.liveconnect.ArgumentHelper;
-
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 
 public class SimulatedAnnealing {
-    public static final Random rand = new Random();
+    private final Random rand = new Random();
 
-    String name;
-    String comment;
-    String type;
-    String dimension;
+    private String name;
+    private String comment;
+    private String type;
+    private String dimension;
 
-    int[][] nodes;
-    int[] demands;
-    int dimensionInt;
-    int capacityInt;
+    private int[][] nodes;
+    private int[] demands;
+    private int dimensionInt;
+    private int capacityInt;
 
     public static void main(String[] args) {
         SimulatedAnnealing sa = new SimulatedAnnealing("data/A-VRP/A-n32-k5.vrp");
         sa.run(1000, 1, 0.85, 100);
         System.out.println("####");
         sa.run(600, 100, 0.96, 100);
-        System.out.println("####");
-        sa.run(5000, 0.001, 0.99, 1000);
+//        System.out.println("####");
+//        sa.run(5000, 0.001, 0.99, 1000);
     }
 
-    public void readFile(String file) {
+    private SimulatedAnnealing(String file) {
+        readFile(file);
+    }
+
+    private void readFile(String file) {
         try {
             BufferedReader br = new BufferedReader(new FileReader(file));
             name = br.readLine().trim();
@@ -64,11 +65,7 @@ public class SimulatedAnnealing {
         }
     }
 
-    private SimulatedAnnealing(String file) {
-        readFile(file);
-    }
-
-    public void run(double T, double Tfinal, double alpha, int maxIterations) {
+    public void run(double T, double Tfinal, double alpha, int iterationsPerT) {
         System.out.println("Problem:");
         System.out.println("Capacity=" + capacityInt);
         System.out.println("Nodes=" + Arrays.deepToString(nodes));
@@ -80,15 +77,11 @@ public class SimulatedAnnealing {
         System.out.println("Routes=" + Arrays.toString(routes.toArray()));
         System.out.println("Cost=" + calculateRoutesCost(routes));
 
-        int iterations = 0;
-        double beta = 1.05; // from paper
-        double M0 = 5; // from paper
-
         // simulated annealing start
         List<List<Integer>> currentRoute = routes;
         List<List<Integer>> bestRoute = currentRoute;
         do {
-            double M = M0;
+            int iterations = 0;
             do {
                 List<List<Integer>> newRoutes = neighbourhoodTransform(currentRoute);
                 double dC = calculateRoutesCost(newRoutes) - calculateRoutesCost(currentRoute);
@@ -98,12 +91,10 @@ public class SimulatedAnnealing {
                         bestRoute = currentRoute;
                     }
                 }
-                M--;
-            } while(M >= 0);
-            iterations++;
+                iterations++;
+            } while(iterations < iterationsPerT);
             T *= alpha;
-            M0 *= beta; // from paper
-        } while(iterations < maxIterations && T > Tfinal);
+        } while(T > Tfinal);
 
 
         System.out.println("Solution:");
@@ -151,63 +142,63 @@ public class SimulatedAnnealing {
         for(List<Integer> route : preTransform) {
             routes.add(new ArrayList<>(route));
         }
-        /*
-         * move()
-         */
         if(rand.nextDouble() < 0.8) {
-            // calculate all distances
-            List<Object[]> distances = new ArrayList<>();
-            for (List<Integer> route : routes) {
-                for (int i = 0; i < route.size(); i++) {
-                    int previousNode = i > 0 ? route.get(i - 1) : 0;
-                    distances.add(new Object[]{
-                            previousNode,
-                            route.get(i),
-                            calculateDistance(previousNode, route.get(i))
-                    });
-                }
-                distances.add(new Object[]{
-                        route.get(route.size() - 1),
-                        0,
-                        calculateDistance(route.get(route.size() - 1), 0)
-                });
-            }
-            Collections.sort(distances, (o1, o2) -> (Double)o2[2] > (Double)o1[2] ? -1 :  1); // ascending
-            // exclude nodes that are the depot or in the 5 shortest distances
-            Set<Integer> excludeSet = new HashSet<>();
-            excludeSet.add(0);
-            for(int i = 0; i < 5; i++) {
-                excludeSet.add((Integer)distances.get(i)[0]);
-                excludeSet.add((Integer)distances.get(i)[1]);
-            }
-            // remove random nodes that aren't in the exclude set
-            Object[] removedNodes = new Object[5];
-            int nodeIndex = 0;
-            while(nodeIndex < removedNodes.length) {
-                int randomNode = rand.nextInt(dimensionInt);
-                if(!excludeSet.contains(randomNode)) {
-                    for(List<Integer> route : routes) {
-                        route.remove((Object)randomNode);
-                    }
-                    excludeSet.add(randomNode);
-                    removedNodes[nodeIndex] = randomNode;
-                    nodeIndex++;
-                }
-            }
-            // select random route and insert each node into the route, if it satisfies the capacity constraint
-            for (int i = 0; i < removedNodes.length; i++) {
-                int node = (Integer) removedNodes[i];
-                while(true) {
-                    List<Integer> randomRoute = routes.get(rand.nextInt(routes.size()));
-                    if (demands[node] + calculateRouteDemand(randomRoute) <= capacityInt) {
-                        randomRoute.add(node);
-                        break;
-                    }
-                }
-            }
+            move(routes);
         }
         replaceHighestAverage(routes);
         return routes;
+    }
+
+    private void move(List<List<Integer>> routes) {
+        // calculate all distances
+        List<Object[]> distances = new ArrayList<>();
+        for (List<Integer> route : routes) {
+            for (int i = 0; i < route.size(); i++) {
+                int previousNode = i > 0 ? route.get(i - 1) : 0;
+                distances.add(new Object[]{
+                        previousNode,
+                        route.get(i),
+                        calculateDistance(previousNode, route.get(i))
+                });
+            }
+            distances.add(new Object[]{
+                    route.get(route.size() - 1),
+                    0,
+                    calculateDistance(route.get(route.size() - 1), 0)
+            });
+        }
+        Collections.sort(distances, (o1, o2) -> (Double) o2[2] > (Double) o1[2] ? -1 : 1); // ascending
+        // exclude nodes that are the depot or in the 5 shortest distances
+        Set<Integer> excludeSet = new HashSet<>();
+        excludeSet.add(0);
+        for(int i = 0; i < 5; i++) {
+            excludeSet.add((Integer)distances.get(i)[0]);
+            excludeSet.add((Integer)distances.get(i)[1]);
+        }
+        // remove random nodes that aren't in the exclude set
+        Object[] removedNodes = new Object[5];
+        int nodeIndex = 0;
+        while(nodeIndex < removedNodes.length) {
+            int randomNode = rand.nextInt(dimensionInt);
+            if(!excludeSet.contains(randomNode)) {
+                for(List<Integer> route : routes) {
+                    route.remove((Object)randomNode);
+                }
+                excludeSet.add(randomNode);
+                removedNodes[nodeIndex] = randomNode;
+                nodeIndex++;
+            }
+        }
+        // select random route and insert each node into the route, if it satisfies the capacity constraint
+        for(Object node : removedNodes) {
+            while(true) {
+                List<Integer> randomRoute = routes.get(rand.nextInt(routes.size()));
+                if (demands[(Integer)node] + calculateRouteDemand(randomRoute) <= capacityInt) {
+                    randomRoute.add((Integer)node);
+                    break;
+                }
+            }
+        }
     }
 
     private void replaceHighestAverage(List<List<Integer>> routes) {
@@ -236,15 +227,14 @@ public class SimulatedAnnealing {
         while(randomRoutes.size() > 5) {
             randomRoutes.remove(rand.nextInt(randomRoutes.size()));
         }
-        Collections.sort(randomRoutes, (o1, o2) -> calculateRouteCost(o2) > calculateRouteCost(o1) ? -1 : 1); // ascending
+//        Collections.sort(randomRoutes, (o1, o2) -> calculateRouteCost(o2) > calculateRouteCost(o1) ? -1 : 1); // ascending
+        Collections.shuffle(randomRoutes);
         // Add removed nodes to random routes, from lowest cost to highest
-        for(int i = 0; i < removedNodes.length; i++) {
-            int node = (Integer)removedNodes[i];
+        for(Object node : removedNodes) {
             boolean added = false;
-            for(int j = 0; j < randomRoutes.size(); j++) {
-                List<Integer> randomRoute = randomRoutes.get(j);
-                if(demands[node] + calculateRouteDemand(randomRoute) <= capacityInt) {
-                    randomRoute.add(node);
+            for(List<Integer> randomRoute : randomRoutes) {
+                if(demands[(Integer)node] + calculateRouteDemand(randomRoute) <= capacityInt) {
+                    randomRoute.add((Integer)node);
                     added = true;
                     break;
                 }
@@ -257,8 +247,8 @@ public class SimulatedAnnealing {
 
     private int calculateRouteDemand(List<Integer> route) {
         int demand = 0;
-        for(int i = 0; i < route.size(); i++) {
-            demand += demands[route.get(i)];
+        for(Integer node : route) {
+            demand += demands[node];
         }
         return demand;
     }
