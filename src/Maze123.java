@@ -139,11 +139,13 @@ public class Maze123 {
             }
         }
         if(IsSolved){
+
             //print path
-            Iterator itr = path.descendingIterator();
             System.out.println("The Path : ");
-            while (itr.hasNext()) {
-                System.out.println(itr.next());
+            ArrayDeque<int[]> temppath = new ArrayDeque<int[]>(path);
+            while(!temppath.isEmpty()){
+                System.out.println("(" + temppath.getLast()[0] + "," + temppath.getLast()[1] + ")");
+                temppath.removeLast();
             }
             //print cost
             System.out.println("The Cost : ");
@@ -151,6 +153,7 @@ public class Maze123 {
             //print visited
             System.out.println("The Explored : ");
             System.out.println(visited.size());
+
             return true;
         } else {
             return false;
@@ -209,11 +212,13 @@ public class Maze123 {
             }
         }
         if(IsSolved){
+
             //print path
-            Iterator itr = path.descendingIterator();
             System.out.println("The Path : ");
-            while (itr.hasNext()) {
-                System.out.println(itr.next());
+            ArrayDeque<int[]> temppath = new ArrayDeque<int[]>(path);
+            while(!temppath.isEmpty()){
+                System.out.println("(" + temppath.getLast()[0] + "," + temppath.getLast()[1] + ")");
+                temppath.removeLast();
             }
             //print cost
             System.out.println("The Cost : ");
@@ -221,6 +226,7 @@ public class Maze123 {
             //print visited
             System.out.println("The Explored : ");
             System.out.println(visited.size());
+
             return true;
         } else {
             return false;
@@ -331,7 +337,27 @@ public class Maze123 {
             }
         }
 
+//        if(IsSolved){
+//            return true;
+//        } else {
+//            return false;
+//        }
         if(IsSolved){
+
+            //print path
+            System.out.println("The Path : ");
+            ArrayDeque<int[]> temppath = new ArrayDeque<int[]>(path);
+            while(!temppath.isEmpty()){
+                System.out.println("(" + temppath.getFirst()[0] + "," + temppath.getFirst()[1] + ")");
+                temppath.removeFirst();
+            }
+            //print cost
+            System.out.println("The Cost : ");
+            System.out.println(path.size());
+            //print visited
+            System.out.println("The Explored : ");
+            System.out.println(visited.size());
+
             return true;
         } else {
             return false;
@@ -347,15 +373,15 @@ public class Maze123 {
         int[] e2 = new int[]{2,21};
         int[] bl = new int[]{0,0};
         int[] tr = new int[]{24,24};
-        //lel.dfs(s,e1);
-        //lel.dfs(s,e2);
-        //lel.dfs(bl,tr);
-        //lel.bfs(s,e1);
-        //lel.bfs(s,e2);
-        //lel.bfs(bl,tr);
+        lel.dfs(s,e1);
+        lel.dfs(s,e2);
+        lel.dfs(bl,tr);
+        lel.bfs(s,e1);
+        lel.bfs(s,e2);
+        lel.bfs(bl,tr);
         lel.astar(s,e1);
-        //lel.astar(s,e2);
-        //lel.astar(bl,tr);
+        lel.astar(s,e2);
+        lel.astar(bl,tr);
     }
 
 

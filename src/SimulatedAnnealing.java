@@ -4,10 +4,10 @@ import java.util.*;
 public class SimulatedAnnealing {
     private final Random rand = new Random();
 
-    private String name;
-    private String comment;
-    private String type;
-    private String dimension;
+    public final String name;
+    public final String comment;
+    public final String type;
+    public final String dimension;
 
     private int[][] nodes;
     private int[] demands;
@@ -15,67 +15,80 @@ public class SimulatedAnnealing {
     private int capacityInt;
 
     public static void main(String[] args) {
-        SimulatedAnnealing sa = new SimulatedAnnealing("data/A-VRP/A-n32-k5.vrp");
-        sa.run(1000, 1, 0.85, 100);
-        System.out.println("####");
-        sa.run(600, 100, 0.96, 100);
-//        System.out.println("####");
-//        sa.run(5000, 0.001, 0.99, 1000);
-    }
-
-    private SimulatedAnnealing(String file) {
-        readFile(file);
-    }
-
-    private void readFile(String file) {
-        try {
-            BufferedReader br = new BufferedReader(new FileReader(file));
-            name = br.readLine().trim();
-            comment = br.readLine().trim();
-            type = br.readLine().trim();
-            assert "TYPE : CVRP".equals(type); // assume CVRP
-            dimension = br.readLine().trim();
-            dimensionInt = Integer.parseInt(dimension.substring(dimension.lastIndexOf(' ') + 1));
-            nodes = new int[dimensionInt][];
-            demands = new int[dimensionInt];
-
-            String edgeWeightType = br.readLine().trim();
-            assert "EDGE_WEIGHT_TYPE : EUC_2D".equals(edgeWeightType); // assume EUC_2D
-            String capacity = br.readLine().trim();
-            capacityInt = Integer.parseInt(capacity.substring(capacity.lastIndexOf(' ') + 1));
-
-            br.readLine();
-
-            String line = br.readLine().trim();
-            while(!line.startsWith("DEMAND_SECTION")) {
-                String[] coor = line.split(" ");
-                nodes[Integer.parseInt(coor[0]) - 1] = new int[]{Integer.parseInt(coor[1]), Integer.parseInt(coor[2])};
-                line = br.readLine().trim();
+        File[] problems = new File("data/A-VRP").listFiles();
+        SimulatedAnnealing[] models = new SimulatedAnnealing[problems.length];
+        for (int i = 0; i < problems.length; i++) {
+            try {
+                models[i] = new SimulatedAnnealing(problems[i]);
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.exit(1);
             }
-            line = br.readLine().trim();
-            while(!line.startsWith("DEPOT_SECTION")) {
-                String[] coor = line.split(" ");
-                demands[Integer.parseInt(coor[0]) - 1] = Integer.parseInt(coor[1]);
-                line = br.readLine().trim();
-            }
-            assert demands[0] == 0; // assume depot is always node "1"
-            // assume DEPOT_SECTION always 1
-        } catch(IOException e) {
-            e.printStackTrace();
+        }
+        for(SimulatedAnnealing model : models) {
+            System.out.println("#### " + model.name + ": ####");
+            System.out.println(model.comment);
+            System.out.println("# Control scenario i:");
+            model.run(1000, 1, 0.85, 100);
+        }
+        System.out.println("################################################################################");
+        for(SimulatedAnnealing model : models) {
+            System.out.println("#### " + model.name + ": ####");
+            System.out.println(model.comment);
+            System.out.println("# Control scenario ii:");
+            model.run(600, 100, 0.96, 100);
+        }
+        System.out.println("################################################################################");
+        for(SimulatedAnnealing model : models) {
+            System.out.println("#### " + model.name + ": ####");
+            System.out.println(model.comment);
+            System.out.println("# Parameters used in report by Harmanani et al.:");
+            model.run(5000, 0.001, 0.99, 10000);
         }
     }
 
+    private SimulatedAnnealing(File file) throws IOException {
+        BufferedReader br = new BufferedReader(new FileReader(file));
+        name = br.readLine().trim();
+        comment = br.readLine().trim();
+        type = br.readLine().trim();
+        assert "TYPE : CVRP".equals(type); // assume CVRP
+        dimension = br.readLine().trim();
+        dimensionInt = Integer.parseInt(dimension.substring(dimension.lastIndexOf(' ') + 1));
+        nodes = new int[dimensionInt][];
+        demands = new int[dimensionInt];
+
+        String edgeWeightType = br.readLine().trim();
+        assert "EDGE_WEIGHT_TYPE : EUC_2D".equals(edgeWeightType); // assume EUC_2D
+        String capacity = br.readLine().trim();
+        capacityInt = Integer.parseInt(capacity.substring(capacity.lastIndexOf(' ') + 1));
+
+        br.readLine();
+
+        String line = br.readLine().trim();
+        while(!line.startsWith("DEMAND_SECTION")) {
+            String[] coor = line.split(" ");
+            nodes[Integer.parseInt(coor[0]) - 1] = new int[]{Integer.parseInt(coor[1]), Integer.parseInt(coor[2])};
+            line = br.readLine().trim();
+        }
+        line = br.readLine().trim();
+        while(!line.startsWith("DEPOT_SECTION")) {
+            String[] coor = line.split(" ");
+            demands[Integer.parseInt(coor[0]) - 1] = Integer.parseInt(coor[1]);
+            line = br.readLine().trim();
+        }
+        assert demands[0] == 0; // assume depot is always node "1"
+        // assume DEPOT_SECTION always 1
+    }
+
     public void run(double T, double Tfinal, double alpha, int iterationsPerT) {
-        System.out.println("Problem:");
-        System.out.println("Capacity=" + capacityInt);
-        System.out.println("Nodes=" + Arrays.deepToString(nodes));
-        System.out.println("Demands=" + Arrays.toString(demands));
+//        System.out.println("Nodes=" + Arrays.deepToString(nodes));
+//        System.out.println("Demands=" + Arrays.toString(demands));
 
         List<List<Integer>> routes = generateInitialCondition();
 
-        System.out.println("Initial condition:");
-        System.out.println("Routes=" + Arrays.toString(routes.toArray()));
-        System.out.println("Cost=" + calculateRoutesCost(routes));
+//        System.out.println("Routes=" + Arrays.toString(routes.toArray()));
+//        System.out.println("Cost=" + calculateRoutesCost(routes));
 
         // simulated annealing start
         List<List<Integer>> currentRoute = routes;
@@ -85,7 +98,7 @@ public class SimulatedAnnealing {
             do {
                 List<List<Integer>> newRoutes = neighbourhoodTransform(currentRoute);
                 double dC = calculateRoutesCost(newRoutes) - calculateRoutesCost(currentRoute);
-                if(dC < 0 || rand.nextDouble() < Math.exp(-dC / T)) {
+                if(dC <= 0 || rand.nextDouble() < Math.exp(-dC / T)) {
                     currentRoute = newRoutes;
                     if(calculateRoutesCost(newRoutes) < calculateRoutesCost(bestRoute)) {
                         bestRoute = currentRoute;
@@ -97,8 +110,8 @@ public class SimulatedAnnealing {
         } while(T > Tfinal);
 
 
-        System.out.println("Solution:");
-        System.out.println("Routes=" + Arrays.toString(bestRoute.toArray()));
+//        System.out.println("Solution:");
+//        System.out.println("Routes=" + Arrays.toString(bestRoute.toArray()));
         System.out.println("Cost=" + calculateRoutesCost(bestRoute));
         validateRoutes(bestRoute);
     }
@@ -142,10 +155,14 @@ public class SimulatedAnnealing {
         for(List<Integer> route : preTransform) {
             routes.add(new ArrayList<>(route));
         }
-        if(rand.nextDouble() < 0.8) {
-            move(routes);
+        try {
+            if(rand.nextDouble() < 0.8) {
+                move(routes);
+            }
+            replaceHighestAverage(routes);
+        } catch(IllegalStateException e) {
+            return preTransform;
         }
-        replaceHighestAverage(routes);
         return routes;
     }
 
@@ -167,36 +184,45 @@ public class SimulatedAnnealing {
                     calculateDistance(route.get(route.size() - 1), 0)
             });
         }
-        Collections.sort(distances, (o1, o2) -> (Double) o2[2] > (Double) o1[2] ? -1 : 1); // ascending
+        Collections.sort(distances, (o1, o2) -> {
+            double d1 = (Double) o1[2];
+            double d2 = (Double) o2[2];
+            return d1 == d2 ? 0 : (d2 > d1 ? 1 : -1);
+        }); // ascending
         // exclude nodes that are the depot or in the 5 shortest distances
-        Set<Integer> excludeSet = new HashSet<>();
-        excludeSet.add(0);
+        Set<Integer> includeSet = new HashSet<>();
+        for(int i = 0; i < dimensionInt; i++) {
+            includeSet.add(i);
+        }
+        includeSet.remove(0);
         for(int i = 0; i < 5; i++) {
-            excludeSet.add((Integer)distances.get(i)[0]);
-            excludeSet.add((Integer)distances.get(i)[1]);
+            includeSet.remove((Integer)distances.get(i)[0]);
+            includeSet.remove((Integer)distances.get(i)[1]);
         }
         // remove random nodes that aren't in the exclude set
         Object[] removedNodes = new Object[5];
-        int nodeIndex = 0;
-        while(nodeIndex < removedNodes.length) {
-            int randomNode = rand.nextInt(dimensionInt);
-            if(!excludeSet.contains(randomNode)) {
-                for(List<Integer> route : routes) {
-                    route.remove((Object)randomNode);
-                }
-                excludeSet.add(randomNode);
-                removedNodes[nodeIndex] = randomNode;
-                nodeIndex++;
+        for(int i = 0; i < 5; i++) {
+            int randomIndex = rand.nextInt(includeSet.size());
+            int randomNode = (Integer)includeSet.toArray()[randomIndex];
+            for(List<Integer> route : routes) {
+                route.remove((Object)randomNode);
             }
+            includeSet.remove(randomNode);
+            removedNodes[i] = randomNode;
         }
         // select random route and insert each node into the route, if it satisfies the capacity constraint
         for(Object node : removedNodes) {
-            while(true) {
+            int attempts = 0;
+            while(attempts < routes.size() * 1000) {
                 List<Integer> randomRoute = routes.get(rand.nextInt(routes.size()));
                 if (demands[(Integer)node] + calculateRouteDemand(randomRoute) <= capacityInt) {
                     randomRoute.add((Integer)node);
                     break;
                 }
+                attempts++;
+            }
+            if(attempts == routes.size() * 1000) {
+                throw new IllegalStateException("failed to add back something");
             }
         }
     }
@@ -214,7 +240,11 @@ public class SimulatedAnnealing {
                 });
             }
         }
-        Collections.sort(averageDistance, (o1, o2) -> (Double)o2[1] > (Double)o1[1] ? 1 : -1); // descending
+        Collections.sort(averageDistance, (o1, o2) -> {
+            double d1 = (Double) o1[1];
+            double d2 = (Double) o2[1];
+            return d1 == d2 ? 0 : (d2 > d1 ? 1 : -1);
+        }); // descending
         Object[] removedNodes = new Object[5];
         for(int i = 0; i < removedNodes.length; i++) {
             removedNodes[i] = averageDistance.get(i)[0];
